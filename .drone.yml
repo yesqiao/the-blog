@@ -1,0 +1,24 @@
+kind: pipeline
+name: default
+
+steps:
+- name: build
+  image: plugins/hugo
+  settings:
+    hugo_version: 0.55
+    validate: true
+  commands:
+    - hugo
+- name: publish  
+  image: alpine
+  settings:
+    ssh_key:
+      from_secret: ssh_key
+  commands:
+    - apk add git openssh-client
+    - mkdir ~/.ssh && printf "Host *\n    StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null" >> ~/.ssh/config
+    - echo $PLUGIN_SSH_KEY | base64 -d > ~/.ssh/id_rsa && chmod 400 ~/.ssh/id_rsa
+    - cd public
+    - git init && git remote add origin git@github.com:yesqiao/yesqiao.github.io.git
+    - git config user.email "drone@ci.com" && git config user.name "drone"
+    - git add . && git commit -m "init" && git push --set-upstream origin master --force
